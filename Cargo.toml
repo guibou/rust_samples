@@ -1,5 +1,5 @@
 [package]
-name = "echo_server"
+name = "brainfuck"
 version = "0.1.0"
 authors = ["Guillaume Bouchard <guillaum.bouchard@gmail.com>"]
 edition = "2018"
