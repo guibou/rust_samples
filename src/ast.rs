@@ -6,5 +6,6 @@ pub enum Op {
     Move(i32),
     Print(i32),
     Read(i32),
+    Set(i32, i32),
     Loop(Vec<Op>),
 }

@@ -6,7 +6,10 @@ pub fn optimise_single(ops: Vec<Op>) -> Vec<Op> {
 
     for o in ops {
         new.push(match o {
-            Op::Loop(l) => Op::Loop(optimise(l)),
+            Op::Loop(l) => match l.as_slice() {
+                [Op::Change(-1, 0)] => Op::Set(0, 0),
+                _ => Op::Loop(optimise(l)),
+            },
             _ => o,
         })
     }
@@ -38,6 +41,13 @@ pub fn optimise_peephole(ops: Vec<Op>) -> Vec<Op> {
                     *current_op = Op::Read(doffset + m);
                     new_ops.push(new_op);
                 }
+                (Op::Move(m), Op::Set(val, doffset)) => {
+                    let new_op = Op::Move(*m);
+                    *current_op = Op::Set(*val, doffset + m);
+                    new_ops.push(new_op);
+                }
+                // Cancels Set: TODO
+                // Compress Set/Change: TODO
                 // Compress Change and sort them by order
                 (Op::Change(a, da), Op::Change(b, db)) =>
                 // Compress if they are the same
