@@ -1,5 +1,5 @@
 // Brainfuck operands
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Op {
     Change(i32),
     Move(i32),
