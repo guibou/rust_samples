@@ -1,4 +1,5 @@
 use crate::ast::Op;
+use std::collections::HashMap;
 
 // Optimise single instructions
 pub fn optimise_single(ops: Vec<Op>) -> Vec<Op> {
@@ -7,7 +8,15 @@ pub fn optimise_single(ops: Vec<Op>) -> Vec<Op> {
     for o in ops {
         new.push(match o {
             Op::Loop(l) => match l.as_slice() {
-                [Op::Change(-1, 0)] => Op::Set(0, 0),
+                [Op::Change(m)] => {
+                    if m.len() == 1 && m.get(&0) == Some(&-1) {
+                        let mut set_map = HashMap::new();
+                        set_map.insert(0, 0);
+                        Op::Set(set_map)
+                    } else {
+                        Op::Loop(optimise(l))
+                    }
+                }
                 _ => Op::Loop(optimise(l)),
             },
             _ => o,
@@ -15,6 +24,16 @@ pub fn optimise_single(ops: Vec<Op>) -> Vec<Op> {
     }
 
     new
+}
+
+fn move_dict(d: i32, map: &HashMap<i32, i32>) -> HashMap<i32, i32> {
+    let mut new_map = HashMap::new();
+
+    for (offset, value) in map {
+        new_map.insert(offset + d, *value);
+    }
+
+    new_map
 }
 
 // optimise_peephole
@@ -26,11 +45,6 @@ pub fn optimise_peephole(ops: Vec<Op>) -> Vec<Op> {
             None => new_ops.push(op.clone()),
             Some(current_op) => match (&current_op, &op) {
                 // Move the move to the right
-                (Op::Move(m), Op::Change(v, doffset)) => {
-                    let new_op = Op::Move(*m);
-                    *current_op = Op::Change(*v, doffset + m);
-                    new_ops.push(new_op);
-                }
                 (Op::Move(m), Op::Print(doffset)) => {
                     let new_op = Op::Move(*m);
                     *current_op = Op::Print(doffset + m);
@@ -41,29 +55,28 @@ pub fn optimise_peephole(ops: Vec<Op>) -> Vec<Op> {
                     *current_op = Op::Read(doffset + m);
                     new_ops.push(new_op);
                 }
-                (Op::Move(m), Op::Set(val, doffset)) => {
+                (Op::Move(m), Op::Set(map)) => {
                     let new_op = Op::Move(*m);
-                    *current_op = Op::Set(*val, doffset + m);
+                    *current_op = Op::Set(move_dict(*m, map));
+                    new_ops.push(new_op);
+                }
+                (Op::Move(m), Op::Change(map)) => {
+                    let new_op = Op::Move(*m);
+                    *current_op = Op::Change(move_dict(*m, map));
                     new_ops.push(new_op);
                 }
                 // Cancels Set: TODO
                 // Compress Set/Change: TODO
-                // Compress Change and sort them by order
-                (Op::Change(a, da), Op::Change(b, db)) =>
+                // Compress Change
+                (Op::Change(ma), Op::Change(mb)) =>
                 // Compress if they are the same
                 {
-                    if *da == *db {
-                        *current_op = Op::Change(*a + *b, *da);
-                    } else {
-                        // Sort by offset
-                        if da < db {
-                            new_ops.push(op.clone());
-                        } else {
-                            let new_op = current_op.clone();
-                            *current_op = op.clone();
-                            new_ops.push(new_op);
-                        }
+                    let mut ma2 = ma.clone();
+
+                    for (offset, value) in mb {
+                        ma2.insert(*offset, value + *ma2.get(offset).unwrap_or(&0));
                     }
+                    *current_op = Op::Change(ma2);
                 }
                 // Compress Move
                 (Op::Move(a), Op::Move(b)) => {

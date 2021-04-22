@@ -14,8 +14,16 @@ pub fn eval_bf(ops: &Vec<Op>) -> Result<Vec<i32>, String> {
 fn eval_bf2(memory: &mut Vec<i32>, offset: &mut i32, ops: &Vec<Op>) -> Result<(), String> {
     for op in ops {
         match op {
-            Op::Set(val, doffset) => *(on_memory(memory, *offset + doffset)?) = *val,
-            Op::Change(i, doffset) => *(on_memory(memory, *offset + doffset)?) += i,
+            Op::Set(m) => {
+                for (doffset, val) in m {
+                    *(on_memory(memory, *offset + *doffset)?) = *val;
+                }
+            }
+            Op::Change(m) => {
+                for (doffset, val) in m {
+                    *(on_memory(memory, *offset + *doffset)?) += *val;
+                }
+            }
             Op::Move(i) => *offset += i,
             Op::Print(i) => {
                 let u = *(on_memory(memory, *offset + i)?);

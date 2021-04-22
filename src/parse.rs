@@ -1,4 +1,5 @@
 use crate::ast::Op;
+use std::collections::HashMap;
 
 // Parse a vector of char as a brainfuck list of operands
 pub fn parse_bf(s: &Vec<char>) -> Result<Vec<Op>, String> {
@@ -25,8 +26,8 @@ pub fn parse_bf(s: &Vec<char>) -> Result<Vec<Op>, String> {
             }
             _ => {
                 let op = match c {
-                    '+' => Some(Op::Change(1, 0)),
-                    '-' => Some(Op::Change(-1, 0)),
+                    '+' => Some(new_change(1)),
+                    '-' => Some(new_change(-1)),
                     '>' => Some(Op::Move(1)),
                     '<' => Some(Op::Move(-1)),
                     '.' => Some(Op::Print(0)),
@@ -45,4 +46,11 @@ pub fn parse_bf(s: &Vec<char>) -> Result<Vec<Op>, String> {
     } else {
         Ok(current)
     }
+}
+
+fn new_change(i: i32) -> Op {
+    let mut map = HashMap::new();
+    map.insert(0, i);
+
+    Op::Change(map)
 }
