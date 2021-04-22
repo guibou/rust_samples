@@ -14,10 +14,8 @@ pub fn eval_bf(ops: &Vec<Op>) -> Result<Vec<i32>, String> {
 fn eval_bf2(memory: &mut Vec<i32>, offset: &mut i32, ops: &Vec<Op>) -> Result<(), String> {
     for op in ops {
         match op {
-            Op::Inc => *(on_memory(memory, *offset)?) += 1,
-            Op::Dec => *(on_memory(memory, *offset)?) -= 1,
-            Op::Forward => *offset += 1,
-            Op::Backward => *offset -= 1,
+            Op::Change(i) => *(on_memory(memory, *offset)?) += i,
+            Op::Move(i) => *offset += i,
             Op::Print => {
                 let u = *(on_memory(memory, *offset)?);
                 let c = std::char::from_u32(u as u32).unwrap_or('?');
