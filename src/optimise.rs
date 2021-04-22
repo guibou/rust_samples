@@ -22,7 +22,7 @@ pub fn optimise_peephole(ops: Vec<Op>) -> Vec<Op> {
         match new_ops.last_mut() {
             None => new_ops.push(op.clone()),
             Some(current_op) => match (&current_op, &op) {
-                // Move the move to the left
+                // Move the move to the right
                 (Op::Move(m), Op::Change(v, doffset)) => {
                     let new_op = Op::Move(*m);
                     *current_op = Op::Change(*v, doffset + m);
@@ -42,7 +42,7 @@ pub fn optimise_peephole(ops: Vec<Op>) -> Vec<Op> {
                 (Op::Change(a, da), Op::Change(b, db)) =>
                 // Compress if they are the same
                 {
-                    if da == db {
+                    if *da == *db {
                         *current_op = Op::Change(*a + *b, *da);
                     } else {
                         // Sort by offset
@@ -56,7 +56,9 @@ pub fn optimise_peephole(ops: Vec<Op>) -> Vec<Op> {
                     }
                 }
                 // Compress Move
-                (Op::Move(a), Op::Move(b)) => *current_op = Op::Move(*a + *b),
+                (Op::Move(a), Op::Move(b)) => {
+                    *current_op = Op::Move(*a + *b);
+                }
                 (_, b) => new_ops.push(b.clone()),
             },
         }
@@ -66,9 +68,13 @@ pub fn optimise_peephole(ops: Vec<Op>) -> Vec<Op> {
 }
 
 pub fn optimise(mut ops: Vec<Op>) -> Vec<Op> {
-    for _i in 0..0 {
-        ops = optimise_peephole(optimise_single(ops.clone()));
-    }
+    loop {
+        let ops2 = optimise_single(ops.clone());
+        let ops3 = optimise_peephole(ops2);
 
-    ops
+        if ops == ops3 {
+            return ops;
+        }
+        ops = ops3;
+    }
 }
