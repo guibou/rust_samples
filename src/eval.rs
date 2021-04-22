@@ -37,6 +37,9 @@ fn eval_bf2(memory: &mut Vec<i32>, offset: &mut i32, ops: &Vec<Op>) -> Result<()
                     eval_bf2(memory, offset, &ops2)?;
                 }
             }
+            Op::AddMul(or, oa, b) => {
+                *(on_memory(memory, *offset + *or)?) += *(on_memory(memory, *offset + *oa)?) * b;
+            }
         }
     }
     Ok(())

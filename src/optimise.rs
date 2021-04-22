@@ -1,6 +1,14 @@
 use crate::ast::Op;
 use std::collections::HashMap;
 
+// Loop([Change({0: -1, X: B})]
+// There is N is the loop counter
+// N time, I will add B in offset X
+// so this is equal to
+// Set({0: 0}), Mul 0 B
+// With Mul (offestoperandA, valueB, offsetResult)
+// memory[offsetResult] = memory[offsetOerandA] * valueB
+
 // Optimise single instructions
 pub fn optimise_single(ops: Vec<Op>) -> Vec<Op> {
     let mut new = Vec::new();
@@ -8,21 +16,36 @@ pub fn optimise_single(ops: Vec<Op>) -> Vec<Op> {
     for o in ops {
         match o {
             Op::Move(0) => (),
-            _ => new.push(match o {
             Op::Loop(l) => match l.as_slice() {
                 [Op::Change(m)] => {
-                    if m.len() == 1 && m.get(&0) == Some(&-1) {
-                        let mut set_map = HashMap::new();
-                        set_map.insert(0, 0);
-                        Op::Set(set_map)
-                    } else {
-                        Op::Loop(optimise(l))
+                    match m.get(&0) {
+                        // If this loop set the current register to 0 by decrementing
+                        Some(&-1) => {
+                            // If there is only the set to 0, it means that it just Set the value
+                            // to 0
+                            if m.len() == 1 {
+                                let mut set_map = HashMap::new();
+                                set_map.insert(0, 0);
+                                new.push(Op::Set(set_map))
+                            }
+                            // Otherwise, it is a Mul thing
+                            else {
+                                for (offset_a, val_b) in m {
+                                    if *offset_a != 0 {
+                                        new.push(Op::AddMul(*offset_a, 0, *val_b));
+                                    }
+                                }
+                                let mut set_map = HashMap::new();
+                                set_map.insert(0, 0);
+                                new.push(Op::Set(set_map))
+                            };
+                        }
+                        _ => new.push(Op::Loop(optimise(l))),
                     }
                 }
-                _ => Op::Loop(optimise(l)),
+                _ => new.push(Op::Loop(optimise(l))),
             },
-            _ => o,
-        }),
+            _ => new.push(o),
         }
     }
 
@@ -68,7 +91,11 @@ pub fn optimise_peephole(ops: Vec<Op>) -> Vec<Op> {
                     *current_op = Op::Change(move_dict(*m, map));
                     new_ops.push(new_op);
                 }
-                // Cancels Set: TODO
+                (Op::Move(m), Op::AddMul(or, oa, b)) => {
+                    let new_op = Op::Move(*m);
+                    *current_op = Op::AddMul(or + m, oa + m, *b);
+                    new_ops.push(new_op);
+                }
                 // Compress Set/Change: TODO
                 // Compress Change
                 (Op::Change(ma), Op::Change(mb)) =>
@@ -80,6 +107,16 @@ pub fn optimise_peephole(ops: Vec<Op>) -> Vec<Op> {
                         ma2.insert(*offset, value + *ma2.get(offset).unwrap_or(&0));
                     }
                     *current_op = Op::Change(ma2);
+                }
+                (Op::Set(ma), Op::Set(mb)) =>
+                // Compress if they are the same
+                {
+                    let mut ma2 = ma.clone();
+
+                    for (offset, value) in mb {
+                        ma2.insert(*offset, *value);
+                    }
+                    *current_op = Op::Set(ma2);
                 }
                 // Compress Move
                 (Op::Move(a), Op::Move(b)) => {
