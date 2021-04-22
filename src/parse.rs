@@ -25,15 +25,18 @@ pub fn parse_bf(s: &Vec<char>) -> Result<Vec<Op>, String> {
             }
             _ => {
                 let op = match c {
-                    '+' => Op::Change(1),
-                    '-' => Op::Change(-1),
-                    '>' => Op::Move(1),
-                    '<' => Op::Move(-1),
-                    '.' => Op::Print,
-                    ',' => Op::Read,
-                    _ => return Err("Wrong char".to_string()),
+                    '+' => Some(Op::Change(1, 0)),
+                    '-' => Some(Op::Change(-1, 0)),
+                    '>' => Some(Op::Move(1)),
+                    '<' => Some(Op::Move(-1)),
+                    '.' => Some(Op::Print(0)),
+                    ',' => Some(Op::Read(0)),
+                    _ => None,
                 };
-                current.push(op);
+                match op {
+                    Some(opp) => current.push(opp),
+                    None => (),
+                }
             }
         }
     }

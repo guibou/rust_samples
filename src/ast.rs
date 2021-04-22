@@ -1,9 +1,10 @@
 // Brainfuck operands
-#[derive(Debug, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Op {
-    Change(i32),
+    // Change(d, o) will add `d` at a distance `o` in memory.
+    Change(i32, i32),
     Move(i32),
-    Print,
-    Read,
+    Print(i32),
+    Read(i32),
     Loop(Vec<Op>),
 }
