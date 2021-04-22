@@ -6,7 +6,9 @@ pub fn optimise_single(ops: Vec<Op>) -> Vec<Op> {
     let mut new = Vec::new();
 
     for o in ops {
-        new.push(match o {
+        match o {
+            Op::Move(0) => (),
+            _ => new.push(match o {
             Op::Loop(l) => match l.as_slice() {
                 [Op::Change(m)] => {
                     if m.len() == 1 && m.get(&0) == Some(&-1) {
@@ -20,7 +22,8 @@ pub fn optimise_single(ops: Vec<Op>) -> Vec<Op> {
                 _ => Op::Loop(optimise(l)),
             },
             _ => o,
-        })
+        }),
+        }
     }
 
     new
